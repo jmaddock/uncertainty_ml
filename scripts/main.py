@@ -78,7 +78,7 @@ def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
         count_vectorizer = CountVectorizer(analyzer=analyzer,
                                            ngram_range=ngram_range,
                                            stop_words=stopwords)
-    counts = count_vectorizer.fit_transform(labeled_data['text'].values)
+    counts = count_vectorizer.fit_transform(labled_data['text'].values)
     if fname:
         fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
         f = open(fpath, 'w')
