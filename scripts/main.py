@@ -51,7 +51,7 @@ def import_data(fname=None):
             for tweet in tweets:
                 text = scrub_tweet(tweet['text'])
                 text = remove_stopwords(text,rumor,event)
-                if "Uncertainty" in tweet['codes']['second_code']:
+                if "Uncertainty" in tweet['codes'][0]['second_code']:
                     classification = 1
                 else:
                     classification = 0
