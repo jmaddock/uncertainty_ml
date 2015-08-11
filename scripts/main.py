@@ -99,6 +99,7 @@ def make_pipeline(labled_data):
 
 def main():
     documents = import_data()
+    make_feature_set(labled_data=documents,verbose=True)
 
 if __name__ == "__main__":
     main()
