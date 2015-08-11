@@ -73,11 +73,11 @@ def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
     if tfidf:
         count_vectorizer = TfidfVectorizer(analyzer=analyzer,
                                            ngram_range=ngram_range,
-                                           stopwords=stopwords)
+                                           stop_words=stopwords)
     else:
         count_vectorizer = CountVectorizer(analyzer=analyzer,
                                            ngram_range=ngram_range,
-                                           stopwords=stopwords)
+                                           stop_words=stopwords)
     counts = count_vectorizer.fit_transform(labeled_data['text'].values)
     if fname:
         fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
