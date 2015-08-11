@@ -50,7 +50,7 @@ def import_data(fname=None):
             tweets = client[event][rumor].find({'codes.first_code':{'$in':['Affirm','Deny','Neutral']}})
             for tweet in tweets:
                 text = scrub_tweet(tweet['text'])
-                text = remove_stopewords(text,rumor,event)
+                text = remove_stopwords(text,rumor,event)
                 if "Uncertainty" in tweet['codes']['second_code']:
                     classification = 1
                 else:
