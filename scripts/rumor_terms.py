@@ -330,6 +330,7 @@ filter_words = {
     'airspace':['airspace','air','space','flights','no','fly','no-fly'],
     'americans_onboard':['passenger','board','23','americans','us','citizen'],
     'hijacking':['squawk','signal','button','plane','pilot','transponder','west','flight','jet','7500'],
+    'purse':[]
     #'church_fire':[]
 }
 
