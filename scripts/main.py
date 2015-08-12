@@ -5,14 +5,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-#import ml_config
+import ml_config
 import pickle
 import rumor_terms
 import re
 import numpy
 
 # db info
-client = MongoClient('z')
+client = MongoClient() #fix this
 
 #vectorizor info
 analyzer = 'word'
@@ -20,7 +20,7 @@ ngram_range = (1,1)
 stopwords = 'english'
 tfidf = False
 
-def remove_stopwords(words,rumor,event):
+def remove_stopwords(words,event,rumor):
     stop_words = rumor_terms.filter_words[rumor] + rumor_terms.event_terms[event]
     filtered_words = [re.sub("'","",w.lower()) for w in words if not re.sub("'","",w.lower()) in stop_words]
     return filtered_words
@@ -41,6 +41,15 @@ def scrub_tweet(text,scrub_url=True):
         #print text
         return text
 
+def process_tweet(tweet,event,rumor):
+    text = scrub_tweet(tweet['text'])
+    words = re.findall(r"[\w']+", text)
+    words = remove_stopwords(words,event,rumor)
+    cleaned = ''
+    for word in words:
+        cleaned += word + ' '
+    return cleaned
+
 def import_data(fname=None):
     result = DataFrame({'text':[],'class':[]})
     for event in rumor_terms.event_rumor_map:
@@ -49,8 +58,7 @@ def import_data(fname=None):
             index = []
             tweets = client[event][rumor].find({'codes.first_code':{'$in':['Affirm','Deny','Neutral']}})
             for tweet in tweets:
-                text = scrub_tweet(tweet['text'])
-                text = remove_stopwords(text,rumor,event)
+                text = process_tweet(tweet,event,rumor)
                 if "Uncertainty" in tweet['codes'][0]['second_code']:
                     classification = 1
                 else:
@@ -58,9 +66,9 @@ def import_data(fname=None):
                 rows.append({'text':text,'class':classification})
                 index.append(rumor)
             data = DataFrame(rows,index=index)
-            result.append(data)
-            result = result.reindex(numpy.random.permutation(data.index))
-        break
+            result = result.append(data)
+    result = result.reindex(numpy.random.permutation(data.index))
+
     if fname:
         fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
         f = open(fpath, 'w')
@@ -84,7 +92,10 @@ def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
         f = open(fpath, 'w')
         pickle.dump(result,f)
     if verbose:
-        print count_vectorizer.vocabulary
+        feature_names = count_vectorizer.get_feature_names()
+        print counts
+        #for col in counts.nonzero()[1]:
+        #    print feature_names[col], ' - ', counts[0, col]
     return counts
 
 '''

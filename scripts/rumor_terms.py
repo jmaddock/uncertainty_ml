@@ -314,12 +314,12 @@ rumor_terms = {
 }
 
 event_rumor_map = {
-    'sydneysiege':['lakemba','suicide','hadley','flag','airspace'],
-    'mh17':['american_falseflag','americans_onboard'],
+    'sydneysiege':['suicide','flag','lakemba','airspace','hadley'],#fix this
+    'mh17':['americans_onboard'],
     'westjet':['hijacking'],
     'dc_power_outage':['foulplay'],
-    'donetsk':['nuclear_detonation'],
-    'baltimore':['purse','church_fire','gangs']
+    #'donetsk':['nuclear_detonation'],
+    'baltimore':['purse','church_fire',]
 }
 
 filter_words = {
@@ -334,7 +334,7 @@ filter_words = {
 }
 
 event_terms = {
-    'sydneysiege':['sydneysiege','martinplacesiege','haron','monis','haronmonis','illridewithyou','martinplace','sydney','chocolate shop','nswpolice','prime minister','tony abbott','witness','lindt','siege','hostage','hostages','martin place','terrorise','terrorize','terrorists','flag'],
+    'test':['sydneysiege','martinplacesiege','haron','monis','haronmonis','illridewithyou','martinplace','sydney','chocolate shop','nswpolice','prime minister','tony abbott','witness','lindt','siege','hostage','hostages','martin place','terrorise','terrorize','terrorists','flag'],
     'mh17':['sa11','sa-11','ukraine','malaysia','airlines','mh17','kiev','mh017','torez','donetsk','airline','plane','buk'],
     'WestJet_Hijacking':[],
     'baltimore':[]
