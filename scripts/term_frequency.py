@@ -17,7 +17,7 @@ class UncertaintyAnalysis(object):
 
     def __init__(self,stem,host=None,bigram=False):
         if host:
-            self.client = MonoClient(host)
+            self.client = MongoClient(host)
         else:
             self.client = MongoClient()
         self.bigram = bigram
