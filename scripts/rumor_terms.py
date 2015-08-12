@@ -330,13 +330,14 @@ filter_words = {
     'airspace':['airspace','air','space','flights','no','fly','no-fly'],
     'americans_onboard':['passenger','board','23','americans','us','citizen'],
     'hijacking':['squawk','signal','button','plane','pilot','transponder','west','flight','jet','7500'],
-    'purse':[]
-    #'church_fire':[]
+    'purse':[],
+    'church_fire':[]
 }
 
 event_terms = {
-    'test':['sydneysiege','martinplacesiege','haron','monis','haronmonis','illridewithyou','martinplace','sydney','chocolate shop','nswpolice','prime minister','tony abbott','witness','lindt','siege','hostage','hostages','martin place','terrorise','terrorize','terrorists','flag'],
+    'sydneysiege':['sydneysiege','martinplacesiege','haron','monis','haronmonis','illridewithyou','martinplace','sydney','chocolate shop','nswpolice','prime minister','tony abbott','witness','lindt','siege','hostage','hostages','martin place','terrorise','terrorize','terrorists','flag'],
     'mh17':['sa11','sa-11','ukraine','malaysia','airlines','mh17','kiev','mh017','torez','donetsk','airline','plane','buk'],
     'WestJet_Hijacking':[],
-    'baltimore':[]
+    'baltimore':[],
+    'dc_power_outage':[]
 }

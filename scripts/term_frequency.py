@@ -99,7 +99,6 @@ class UncertaintyAnalysis(object):
 
         self.baseline_total += self._count_all_words(baseline_tweet_list,event,rumor)
         print '[INFO] creating baseline counts'
-        print self.uncertainty_total,self.baseline_total
         for tweet in baseline_tweet_list:
             #try:
                 if self.bigram:
@@ -107,7 +106,6 @@ class UncertaintyAnalysis(object):
                     filtered_words = self._remove_bigram_stopwords(zip(s, islice(s, 1, None)))
                 else:
                     filtered_words = self.process_tweet(tweet,event,rumor)
-                    print filtered_words
                 self.baseline_top_words.update(filtered_words)
             #except TypeError:
             #    print tweet['text']
@@ -126,7 +124,6 @@ class UncertaintyAnalysis(object):
             #except TypeError:
             #    print tweet['text']
             #    print 'error'
-        print self.top_words.most_common(10),self.baseline_top_words.most_common(10)
 
     def normalize_counts(self,output=True):
         print '[INFO] normalizing counts'
@@ -269,7 +266,7 @@ def main():
         'baltimore':['purse']
     }
     # the rumor identifier
-    u = UncertaintyAnalysis(stem=False)
+    u = UncertaintyAnalysis(host='z',stem=False)
     u.multiple_event_uncertainty_terms()
     #u.top_uncertainty_words(stem=False,bigram=True)
     #u.uncertainty_tf_idf()
