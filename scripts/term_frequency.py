@@ -128,9 +128,9 @@ class UncertaintyAnalysis(object):
     def normalize_counts(self,output=True):
         print '[INFO] normalizing counts'
         for count in self.top_words:
-            normalized = float(self.top_words[count])/float(self.uncertainty_total)
-            normalized_base = float(self.baseline_top_words[count])/float(self.baseline_total)
-            self.results[count] = normalized - normalized_base
+            normalized = float(self.top_words[count])/float(self.baseline_top_words[count])
+            #normalized_base = float(self.baseline_top_words[count])/float(self.baseline_total)
+            self.results[count] = normalized
         if output:
             print '[INFO] sorting'
             ordered_result = [x for x in self.results]
