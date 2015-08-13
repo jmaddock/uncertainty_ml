@@ -127,9 +127,11 @@ class UncertaintyAnalysis(object):
 
     def normalize_counts(self,output=True):
         print '[INFO] normalizing counts'
-        print self.baseline_top_words.most_common(100)
         for count in self.top_words:
-            normalized = float(self.top_words[count])/float(self.baseline_top_words[count])
+            try:
+                normalized = float(self.top_words[count])/float(self.baseline_top_words[count])
+            except ZeroDivisionError:
+                print 'error: %s' % self.top_words[count]
             #normalized_base = float(self.baseline_top_words[count])/float(self.baseline_total)
             self.results[count] = normalized
         if output:
