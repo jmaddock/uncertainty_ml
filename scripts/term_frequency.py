@@ -92,14 +92,10 @@ class UncertaintyAnalysis(object):
         return word_count
 
     def top_uncertainty_words(self,event,rumor):
-        if event == 'sydneysiege':
-            collection = 'sydneysiege_cache'
-        else:
-            collection = 'rumor_compression'
-        db = self.client[collection][rumor]
-        uncertainty_tweet_list = [x for x in db.find({'codes.second_code':'Uncertainty'})]
+        db = self.client[code_comparison][rumor]
+        uncertainty_tweet_list = [x for x in db.find({'second_final':'Uncertainty'})]
         self.uncertainty_total += self._count_all_words(uncertainty_tweet_list,event,rumor)
-        baseline_tweet_list = [x for x in db.find({'$and':[{'codes.first_code':{'$ne':'Unrelated'}},{'codes.first_code':{'$ne':'Uncodable'}}]})]
+        baseline_tweet_list = [x for x in db.find({'$and':[{'first_final':{'$ne':'Unrelated'}},{'codes.first_code':{'$ne':'Uncodable'}}]})]
 
         self.baseline_total += self._count_all_words(baseline_tweet_list,event,rumor)
         print '[INFO] creating baseline counts'
