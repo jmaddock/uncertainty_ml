@@ -51,13 +51,14 @@ def process_tweet(tweet,event,rumor):
     return cleaned
 
 def import_data(fname=None,verbose=False):
+    count = 0
     result = DataFrame({'text':[],'class':[],'rumor':[]})
     for event in rumor_terms.event_rumor_map:
         for rumor in rumor_terms.event_rumor_map[event]:
             if verbose:
                 print event,rumor
             rows = []
-            #index = []
+            index = []
             tweets = client['code_comparison'][rumor].find({'first_final':{'$in':['Affirm','Deny','Neutral']}})
             for tweet in tweets:
                 text = process_tweet(tweet,event,rumor)
@@ -66,8 +67,9 @@ def import_data(fname=None,verbose=False):
                 else:
                     classification = 0
                 rows.append({'text':text,'class':classification,'rumor':rumor})
-                #index.append(rumor)
-            data = DataFrame(rows)
+                index.append(count)
+                count += 1
+            data = DataFrame(rows,index=index)
             result = result.append(data)
     print data
     result = result.reindex(numpy.random.permutation(data.index))
