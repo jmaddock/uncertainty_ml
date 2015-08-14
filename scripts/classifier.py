@@ -54,6 +54,8 @@ def import_data(fname=None,verbose=False):
     result = DataFrame({'text':[],'class':[]})
     for event in rumor_terms.event_rumor_map:
         for rumor in rumor_terms.event_rumor_map[event]:
+            if verbose:
+                print event,rumor
             rows = []
             index = []
             tweets = client['code_comparison'][rumor].find({'first_final':{'$in':['Affirm','Deny','Neutral']}})
