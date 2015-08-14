@@ -56,10 +56,10 @@ def import_data(fname=None,verbose=False):
         for rumor in rumor_terms.event_rumor_map[event]:
             rows = []
             index = []
-            tweets = client['code_comparison'][rumor].find({'codes.first_final':{'$in':['Affirm','Deny','Neutral']}})
+            tweets = client['code_comparison'][rumor].find({'first_final':{'$in':['Affirm','Deny','Neutral']}})
             for tweet in tweets:
                 text = process_tweet(tweet,event,rumor)
-                if "Uncertainty" in tweet['codes']['second_code']:
+                if "Uncertainty" in tweet['second_final']:
                     classification = 1
                 else:
                     classification = 0
