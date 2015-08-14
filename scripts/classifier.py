@@ -69,6 +69,7 @@ def import_data(fname=None,verbose=False):
                 index.append(rumor)
             data = DataFrame(rows,index=index)
             result = result.append(data)
+    print data
     result = result.reindex(numpy.random.permutation(data.index))
     if verbose:
         print result
