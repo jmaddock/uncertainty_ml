@@ -322,6 +322,12 @@ event_rumor_map = {
     'baltimore':['purse','church_fire',]
 }
 
+compression_rumor_map = {
+    'sydneysiege_cache':['suicide','flag','lakemba','airspace','hadley'],#fix this
+    'rumor_compression':['americans_onboard','hijacking','foul_play','purse','church_fire',]
+    #'donetsk':['nuclear_detonation'],
+}
+
 filter_words = {
     'hadley':['hostage','hadley','radio','host'],
     'lakemba':['lakemba'],

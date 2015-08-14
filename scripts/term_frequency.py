@@ -129,11 +129,11 @@ class UncertaintyAnalysis(object):
         print '[INFO] normalizing counts'
         for count in self.top_words:
             try:
-                normalized = float(self.top_words[count])/float(self.baseline_top_words[count])
+                normalized = float(self.top_words[count])/float(self.uncertainty_total)
             except ZeroDivisionError:
                 print 'error: %s' % self.top_words[count]
-            #normalized_base = float(self.baseline_top_words[count])/float(self.baseline_total)
-            self.results[count] = normalized
+            normalized_base = float(self.baseline_top_words[count])/float(self.baseline_total)
+            self.results[count] = normalized - normalized_base
         if output:
             print '[INFO] sorting'
             ordered_result = [x for x in self.results]
@@ -145,8 +145,8 @@ class UncertaintyAnalysis(object):
                     print x,self.results[x]
 
     def multiple_event_uncertainty_terms(self,output=True):
-        for event in rumor_terms.event_rumor_map:
-            for rumor in rumor_terms.event_rumor_map[event]:
+        for event in rumor_terms.compression_rumor_map:
+            for rumor in rumor_terms.compression_rumor_map[event]:
                 print event, rumor
                 self.top_uncertainty_words(event,rumor)
         self.normalize_counts(output)
