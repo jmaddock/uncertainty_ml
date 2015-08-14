@@ -12,7 +12,7 @@ import re
 import numpy
 
 # db info
-client = MongoClient() #fix this
+client = MongoClient('z') #fix this
 
 #vectorizor info
 analyzer = 'word'
@@ -50,16 +50,16 @@ def process_tweet(tweet,event,rumor):
         cleaned += word + ' '
     return cleaned
 
-def import_data(fname=None):
+def import_data(fname=None,verbose=False):
     result = DataFrame({'text':[],'class':[]})
     for event in rumor_terms.event_rumor_map:
         for rumor in rumor_terms.event_rumor_map[event]:
             rows = []
             index = []
-            tweets = client[event][rumor].find({'codes.first_code':{'$in':['Affirm','Deny','Neutral']}})
+            tweets = client['code_comparison'][rumor].find({'codes.first_final':{'$in':['Affirm','Deny','Neutral']}})
             for tweet in tweets:
                 text = process_tweet(tweet,event,rumor)
-                if "Uncertainty" in tweet['codes'][0]['second_code']:
+                if "Uncertainty" in tweet['codes']['second_code']:
                     classification = 1
                 else:
                     classification = 0
@@ -68,6 +68,8 @@ def import_data(fname=None):
             data = DataFrame(rows,index=index)
             result = result.append(data)
     result = result.reindex(numpy.random.permutation(data.index))
+    if verbose:
+        print result
 
     if fname:
         fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
@@ -110,8 +112,8 @@ def make_pipeline(labled_data):
 '''
 
 def main():
-    documents = import_data()
-    make_feature_set(labled_data=documents,verbose=True)
+    documents = import_data(verbose=True)
+    #counts = make_feature_set(labled_data=documents,verbose=True)
 
 if __name__ == "__main__":
     main()
