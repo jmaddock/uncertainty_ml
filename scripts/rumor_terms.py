@@ -316,7 +316,7 @@ rumor_terms = {
 event_rumor_map = {
     'sydneysiege':['suicide','flag','lakemba','airspace','hadley'],#fix this
     'mh17':['americans_onboard'],
-    'westjet':['hijacking'],
+    'WestJet_Hijacking':['hijacking'],
     'dc_power_outage':['foulplay'],
     #'donetsk':['nuclear_detonation'],
     'baltimore':['purse','church_fire',]
