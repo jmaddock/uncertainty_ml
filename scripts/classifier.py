@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-import ml_config
+#import ml_config
 import pickle
 import rumor_terms
 import re
