@@ -117,7 +117,7 @@ def train_cl(training_data,examples=None):
     pipeline = Pipeline([
         ('vectorizer',  CountVectorizer(analyzer=analyzer,
                                         ngram_range=ngram_range,
-                                        stop_words=stopwords))
+                                        stop_words=stopwords)),
         ('classifier',  MultinomialNB())
     ])
 
