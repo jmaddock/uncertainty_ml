@@ -142,7 +142,7 @@ def train_and_validate_cl(labled_data,n_folds):
         cl = train_cl(labled_data)
         predictions = cl.predict(test_text)
 
-        confusion += confusion_matrix(test_y, predictions)
+        confusion += confusion_matrix(test_lables, predictions)
         score = f1_score(test_lables, predictions, pos_label=1)
         scores.append(score)
 
