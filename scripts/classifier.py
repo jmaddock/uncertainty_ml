@@ -59,7 +59,7 @@ def process_tweet(tweet,event,rumor):
     return cleaned
 
 def import_training_data(fname=None,verbose=False):
-    count = 0
+    count = 1
     result = DataFrame({'text':[],'class':[],'rumor':[]})
     for event in rumor_terms.event_rumor_map:
         for rumor in rumor_terms.event_rumor_map[event]:
