@@ -154,7 +154,7 @@ def train_and_validate_cl(labled_data,n_folds):
 def main():
     documents = import_training_data(verbose=True)
     #counts = make_feature_set(labled_data=documents,verbose=True)
-    train_and_validate_cl(documents,examples)
+    train_and_validate_cl(documents,10)
 
 if __name__ == "__main__":
     main()
