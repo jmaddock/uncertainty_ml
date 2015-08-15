@@ -121,8 +121,8 @@ def train_cl(labled_data,examples=None):
         ('classifier',  MultinomialNB())
     ])
 
-    pipeline.fit_transform(labled_data['text'].values,
-                           labled_data['class'].values)
+    pipeline.fit(labled_data['text'].values,
+                 labled_data['class'].values)
     if examples:
         pipeline.predict(examples) # ['spam', 'ham']
     return pipeline
