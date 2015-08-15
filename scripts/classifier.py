@@ -113,7 +113,7 @@ def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
         #    print feature_names[col], ' - ', counts[0, col]
     return counts
 
-def train_cl(training_data,examples=None):
+def train_cl(labled_data,examples=None):
     pipeline = Pipeline([
         ('vectorizer',  CountVectorizer(analyzer=analyzer,
                                         ngram_range=ngram_range,
