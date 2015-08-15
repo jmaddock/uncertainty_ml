@@ -137,13 +137,13 @@ def train_and_validate_cl(labled_data,n_folds):
         labled_data = labled_data.iloc[train_indices]
 
         test_text = labled_data.iloc[test_indices]['text'].values
-        test_y = labled_data.iloc[test_indices]['class'].values
+        test_lables = labled_data.iloc[test_indices]['class'].values
 
         cl = train_cl(labled_data)
         predictions = cl.predict(test_text)
 
         confusion += confusion_matrix(test_y, predictions)
-        score = f1_score(test_y, predictions, pos_label=SPAM)
+        score = f1_score(test_lables, predictions, pos_label=1)
         scores.append(score)
 
     print('Total tweets classified:', len(data))
