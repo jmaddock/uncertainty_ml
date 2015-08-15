@@ -59,7 +59,7 @@ def process_tweet(tweet,event,rumor):
     return cleaned
 
 def import_training_data(fname=None,verbose=False):
-    count = 1
+    count = 0
     result = DataFrame({'text':[],'class':[],'rumor':[]})
     for event in rumor_terms.event_rumor_map:
         for rumor in rumor_terms.event_rumor_map[event]:
@@ -134,6 +134,7 @@ def train_and_validate_cl(labled_data,n_folds):
     scores = []
     confusion = numpy.array([[0, 0], [0, 0]])
     for train_indices, test_indices in k_fold:
+        print train_indices, test_indices
         labled_data = labled_data.iloc[train_indices]
 
         test_text = labled_data.iloc[test_indices]['text'].values
