@@ -1,3 +1,5 @@
+# coding: utf-8
+
 from pymongo import MongoClient
 from pandas import DataFrame
 from sklearn.naive_bayes import MultinomialNB
@@ -20,11 +22,14 @@ ngram_range = (1,1)
 stopwords = 'english'
 tfidf = False
 
+# revomve rumore and event specific stopwords
+# update this to use nltk/scikit-learn?
 def remove_stopwords(words,event,rumor):
     stop_words = rumor_terms.filter_words[rumor] + rumor_terms.event_terms[event]
     filtered_words = [re.sub("'","",w.lower()) for w in words if not re.sub("'","",w.lower()) in stop_words]
     return filtered_words
 
+# remove urls, hashtags, mentions
 def scrub_tweet(text,scrub_url=True):
         temp = None
         s = ur'\u201c' + '@.*?:'
@@ -41,6 +46,7 @@ def scrub_tweet(text,scrub_url=True):
         #print text
         return text
 
+# wrapper for scrubbing entire tweet
 def process_tweet(tweet,event,rumor):
     text = scrub_tweet(tweet['text'])
     words = re.findall(r"[\w']+", text)
@@ -50,7 +56,7 @@ def process_tweet(tweet,event,rumor):
         cleaned += word + ' '
     return cleaned
 
-def import_data(fname=None,verbose=False):
+def import_training_data(fname=None,verbose=False):
     count = 0
     result = DataFrame({'text':[],'class':[],'rumor':[]})
     for event in rumor_terms.event_rumor_map:
@@ -82,6 +88,7 @@ def import_data(fname=None,verbose=False):
         pickle.dump(result,f)
     return result
 
+# DEPRECIATED -- included in pipeline
 def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
     if unpickle:
         labled_data = pickle.load(labled_data)
@@ -106,19 +113,30 @@ def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
         #    print feature_names[col], ' - ', counts[0, col]
     return counts
 
-'''
-def make_pipeline(labled_data):
+def train_cl(training_data,examples=None):
     pipeline = Pipeline([
-        ('vectorizer',  CountVectorizer()),
-        ('classifier',  MultinomialNB()) ])
+        ('vectorizer',  CountVectorizer(analyzer=analyzer,
+                                        ngram_range=ngram_range,
+                                        stop_words=stopwords))
+        ('classifier',  MultinomialNB())
+    ])
 
-    pipeline.fit(data['text'].values, data['class'].values
-                 pipeline.predict(examples) # ['spam', 'ham']
-'''
+    pipeline.fit_transform(labled_data['text'].values,
+                           labled_data['class'].values)
+    if examples:
+        pipeline.predict(examples) # ['spam', 'ham']
+    return pipeline
+
 
 def main():
-    documents = import_data(verbose=True)
+    examples = [
+        'More Than a Dozen Hostages Held in Cafe in Sydney; Arabic Flag Placed in Window&lt;----Is this ISIS?I hope this ends well.',
+        'BREAKING: A Sydney cafe at Martin Place is being held up - hostages inside have their hands against the windows, ISIS flag',
+        'If this guy in Sydney was actually with Isis then wouldnt he already have his own Isis flag? #morningjoe'
+    ]
+    documents = import_training_data(verbose=True)
     #counts = make_feature_set(labled_data=documents,verbose=True)
+    cl = train_cl(documents,examples)
 
 if __name__ == "__main__":
     main()
