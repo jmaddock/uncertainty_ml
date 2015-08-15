@@ -124,7 +124,7 @@ def train_cl(labled_data,examples=None):
     pipeline.fit(labled_data['text'].values,
                  labled_data['class'].values)
     if examples:
-        pipeline.predict(examples) # ['spam', 'ham']
+        print pipeline.predict(examples) # ['spam', 'ham']
     return pipeline
 
 
