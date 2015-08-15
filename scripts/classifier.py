@@ -6,6 +6,8 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cross_validation import KFold
+from sklearn.metrics import confusion_matrix, f1_score
 
 #import ml_config
 import pickle
@@ -124,19 +126,35 @@ def train_cl(labled_data,examples=None):
     pipeline.fit(labled_data['text'].values,
                  labled_data['class'].values)
     if examples:
-        print pipeline.predict(examples) # ['spam', 'ham']
+        print pipeline.predict(examples)
     return pipeline
 
+def train_and_validate_cl(labled_data,n_folds):
+    k_fold = KFold(n=len(data), n_folds=n_folds)
+    scores = []
+    confusion = numpy.array([[0, 0], [0, 0]])
+    for train_indices, test_indices in k_fold:
+        labled_data = data.iloc[train_indices]
+
+        test_text = data.iloc[test_indices]['text'].values
+        test_y = data.iloc[test_indices]['class'].values
+
+        cl = train_cl(labled_data)
+        predictions = cl.predict(test_text)
+
+        confusion += confusion_matrix(test_y, predictions)
+        score = f1_score(test_y, predictions, pos_label=SPAM)
+        scores.append(score)
+
+    print('Total tweets classified:', len(data))
+    print('Score:', sum(scores)/len(scores))
+    print('Confusion matrix:')
+    print(confusion)
 
 def main():
-    examples = [
-        'More Than a Dozen Hostages Held in Cafe in Sydney; Arabic Flag Placed in Window&lt;----Is this ISIS?I hope this ends well.',
-        'BREAKING: A Sydney cafe at Martin Place is being held up - hostages inside have their hands against the windows, ISIS flag',
-        'If this guy in Sydney was actually with Isis then wouldnt he already have his own Isis flag? #morningjoe'
-    ]
     documents = import_training_data(verbose=True)
     #counts = make_feature_set(labled_data=documents,verbose=True)
-    cl = train_cl(documents,examples)
+    train_and_validate_cl(documents,examples)
 
 if __name__ == "__main__":
     main()
