@@ -130,14 +130,14 @@ def train_cl(labled_data,examples=None):
     return pipeline
 
 def train_and_validate_cl(labled_data,n_folds):
-    k_fold = KFold(n=len(data), n_folds=n_folds)
+    k_fold = KFold(n=len(labled_data), n_folds=n_folds)
     scores = []
     confusion = numpy.array([[0, 0], [0, 0]])
     for train_indices, test_indices in k_fold:
-        labled_data = data.iloc[train_indices]
+        labled_data = labled_data.iloc[train_indices]
 
-        test_text = data.iloc[test_indices]['text'].values
-        test_y = data.iloc[test_indices]['class'].values
+        test_text = labled_data.iloc[test_indices]['text'].values
+        test_y = labled_data.iloc[test_indices]['class'].values
 
         cl = train_cl(labled_data)
         predictions = cl.predict(test_text)
