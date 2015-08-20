@@ -175,18 +175,21 @@ def validate_cl(labled_data,train_and_test,verbose=False,by_rumor=False):
         precision = metrics.precision_score(test_lables,predictions,pos_label=1)
         if verbose:
             if by_rumor:
-                print labled_data.loc[y[1]]['rumor']
+                print labled_data.loc[y[0]]['rumor']
             print'tweets classified:', len(y)
             print 'f1: %s' % f1_score
             print 'recall: %s' % recall
             print 'precision: %s\n' % precision
-        scores['f1'].append(f1_score)
-        scores['recall'].append(recall)
-        scores['precision'].append(precision)
+        scores['f1'].append(f1_score * y)
+        scores['recall'].append(recall * y)
+        scores['precision'].append(precision * y)
 
-    print('Total tweets classified:', len(labled_data))
+    print 'Total tweets classified:', len(labled_data)
     for score in scores:
-        print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
+        if by_rumor:
+            print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
+        else:
+            print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
     print('Confusion matrix:')
     print(confusion)
 
@@ -271,7 +274,7 @@ def main():
     documents = import_training_data(verbose=True)
     #counts = make_feature_set(labled_data=documents,verbose=True)
     #train_and_test = kfold_split(labled_data=documents,n_folds=10)
-    train_and_test = event_split(labled_data=documents,)
+    train_and_test = rumor_split(labled_data=documents,)
     validate_cl(labled_data=documents,train_and_test=train_and_test,verbose=True,by_rumor=True)
 
 if __name__ == "__main__":
