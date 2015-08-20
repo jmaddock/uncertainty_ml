@@ -314,12 +314,17 @@ rumor_terms = {
 }
 
 event_rumor_map = {
-    'sydneysiege':['suicide','flag','lakemba','airspace','hadley'],#fix this
-    #'mh17':['americans_onboard'],
-    'WestJet_Hijacking':['hijacking'],
-    'dc_power_outage':['foulplay'],
+    'sydneysiege':['suicide',
+                   'flag',
+                   'lakemba',
+                   'airspace',
+                   'hadley'],#fix this
+    'mh17':['americans_onboard'],
+    'WestJet_Hijacking':['hijacking_backup'],
+    'dc_power_outage':['foul_play'],
     #'donetsk':['nuclear_detonation'],
-    'baltimore':['purse','church_fire',]
+    'baltimore':['purse',
+                 'church_fire',]
 }
 
 compression_rumor_map = {
@@ -335,9 +340,10 @@ filter_words = {
     'suicide':['suicide','belt','vest','backpack'],
     'airspace':['airspace','air','space','flights','no','fly','no-fly'],
     'americans_onboard':['passenger','board','23','americans','us','citizen'],
-    'hijacking':['squawk','signal','button','plane','pilot','transponder','west','flight','jet','7500'],
+    'hijacking_backup':['squawk','signal','button','plane','pilot','transponder','west','flight','jet','7500'],
     'purse':[],
-    'church_fire':[]
+    'church_fire':[],
+    'foul_play':[],
 }
 
 event_terms = {
