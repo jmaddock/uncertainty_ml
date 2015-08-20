@@ -180,14 +180,14 @@ def validate_cl(labled_data,train_and_test,verbose=False,by_rumor=False):
             print 'f1: %s' % f1_score
             print 'recall: %s' % recall
             print 'precision: %s\n' % precision
-        scores['f1'].append(f1_score * y)
-        scores['recall'].append(recall * y)
-        scores['precision'].append(precision * y)
+        scores['f1'].append(f1_score * len(y))
+        scores['recall'].append(recall * len(y))
+        scores['precision'].append(precision * len(y))
 
     print 'Total tweets classified:', len(labled_data)
     for score in scores:
         if by_rumor:
-            print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
+            print '%s: %s' % (score,sum(scores[score])/len(labled_data))
         else:
             print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
     print('Confusion matrix:')
