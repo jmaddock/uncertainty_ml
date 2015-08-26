@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from pymongo import MongoClient
 from pandas import DataFrame
+from sklearn.base import TransformerMixin
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.svm import SVC
@@ -10,10 +11,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.pipeline import FeatureUnion
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.cross_validation import KFold
 from sklearn import metrics
 
+import json
 import pickle
 import rumor_terms
 import re
@@ -35,6 +38,20 @@ class InvalidClassifierError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+# extract the text column from a DataFrame
+class textExtractor(TransformerMixin):
+    def transform(self, X, **transform_params):
+        return X['text'].values
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+# extract the features column from a DataFrame
+class booleanFeatureExtractor(TransformerMixin):
+    def transform(self, X, **transform_params):
+        return X['features'].apply(lambda x: json.loads(x)).values
+    def fit(self, X, y=None, **fit_params):
+        return self
 
 # revomve rumore and event specific stopwords
 # update this to use nltk/scikit-learn?
@@ -88,7 +105,7 @@ def process_tweet(tweet,event,rumor):
 # pos = 1, neg = 0
 def import_training_data(fname=None,verbose=False):
     count = 0
-    result = DataFrame({'text':[],'class':[],'rumor':[],'event':[]})
+    result = DataFrame({'text':[],'class':[],'rumor':[],'event':[],'features':[]})
     for event in rumor_terms.event_rumor_map:
         for rumor in rumor_terms.event_rumor_map[event]:
             if verbose:
@@ -99,14 +116,12 @@ def import_training_data(fname=None,verbose=False):
             examples += random.sample(neg_examples,len(pos_examples))
             for tweet in examples:
                 if tweet['text']:
-                    features = {
-                        'is_question':False,
-                        'has_mention':False
-                    }
+                    features = {}
+                    features['has_mention'] = find_mention(tweet['text'])
                     if '?' in tweet['text']:
                         features['is_question'] = True
-                    if find_mention(tweet['text']):
-                        features['has_mention'] = True
+                    else:
+                        features['is_question'] = False
                     text = process_tweet(tweet,event,rumor)
                     if "Uncertainty" in tweet['second_final']:
                         classification = 1
@@ -116,7 +131,8 @@ def import_training_data(fname=None,verbose=False):
                         'text':text,
                         'class':classification,
                         'rumor':rumor,
-                        'event':event
+                        'event':event,
+                        'features':json.dumps(features)
                     },index=[count]))
                     count += 1
     result = result.reindex(numpy.random.permutation(result.index))
@@ -181,7 +197,7 @@ def unpickle_from_dicts(fname):
 
 # validate the classifier over zipped training and testing datasets
 # can be a single train/test pair or multiple zipped together
-def validate_cl(labled_data,train_and_test,verbose=False,split_type=None,fname=None,weighted=True):
+def validate_cl(labled_data,train_and_test,cl_type,verbose=False,split_type=None,fname=None,weighted=True):
     n = len(labled_data)
     scores = OrderedDict()
     scores['f1'] = []
@@ -197,16 +213,16 @@ def validate_cl(labled_data,train_and_test,verbose=False,split_type=None,fname=N
         if split_type == 'rumor' or split_type == 'event':
             train_data = labled_data.loc[x]
 
-            test_text = labled_data.loc[y]['text'].values
+            test_data = labled_data.loc[y]
             test_lables = labled_data.loc[y]['class'].values
         else:
             train_data = labled_data.iloc[x]
 
-            test_text = labled_data.iloc[y]['text'].values
+            test_data = labled_data.iloc[y]
             test_lables = labled_data.iloc[y]['class'].values
 
-        cl = train_cl(train_data,'nb',idf=False)
-        predictions = cl.predict(test_text)
+        cl = train_cl(train_data,cl_type,idf=False)
+        predictions = cl.predict(test_data)
 
         confusion += metrics.confusion_matrix(test_lables, predictions)
         f1_score = metrics.f1_score(test_lables, predictions, pos_label=1)
@@ -249,7 +265,7 @@ def validate_cl(labled_data,train_and_test,verbose=False,split_type=None,fname=N
         f.write('"%s","%s","%s","%s"\n' % ('total',
                                            scores['f1'],
                                            scores['recall'],
-                                           scores['precision'],
+                                           scores['precision']))
     for score in scores:
         print '%s: %s' % (score,scores[score])
     print('Confusion matrix:')
@@ -268,49 +284,52 @@ def train_cl(labled_data,cl_type,examples=None,idf=False):
     pipeline = Pipeline([
         ('features',FeatureUnion([
             ('bag_of_words',Pipeline([
+                ('extractor',textExtractor()),
                 ('vectorizer',CountVectorizer(analyzer='char_wb',
                                               ngram_range=(1,5),
                                               stop_words=None)),
                 ('transformer',TfidfTransformer(use_idf=False))
             ])),
             ('uncertainty_terms',Pipeline([
+                ('extractor',textExtractor()),
                 ('vectorizer',CountVectorizer(analyzer='word',
                                               ngram_range=(1,1),
                                               stop_words=None,
                                               vocabulary=rumor_terms.uncertainty_words)),
                 ('transformer',TfidfTransformer(use_idf=False))
              ])),
-            #('is_question',Pipeline([
-            #    ('processor',)
-            #]))
+            ('boolean_features',Pipeline([
+                ('extractor',booleanFeatureExtractor()),
+                ('vectorizer',DictVectorizer())
+            ]))
         ])),
         ('classifier',cl)
     ])
-
-    pipeline.fit(labled_data['text'].values,
+    pipeline.fit(labled_data,
                  labled_data['class'].values)
     if examples:
         print pipeline.predict(examples)
     return pipeline
 
 def main():
-    #documents = import_training_data(verbose=True,fname='dataset_8-24.pickle')
+    #documents = import_training_data(verbose=True,fname='dataset_8-26.pickle')
     #documents = import_training_data(verbose=True)
-    documents = unpickle_from_dicts(fname='dataset_8-24.pickle')
+    documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
     #train_and_test = kfold_split(labled_data=documents,n_folds=10,fname='kfold_8-24.pickle')
     #train_and_test = kfold_split(labled_data=documents,n_folds=10)
-    #train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-24.pickle')
+    #train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-26.pickle')
     #train_and_test = event_split(labled_data=documents,fname='eventfold_8-24.pickle')
-    train_and_test = unpickle_from_dicts(fname='kfold_8-24.pickle')
+    train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
     validate_cl(labled_data=documents,
                 train_and_test=train_and_test,
+                cl_type='nb',
                 verbose=True,
-                split_type='kfold',
-                fname='nb_chargram_vocab_kfold_8-26.csv')
+                split_type='rumor',
+                fname='max_ent_chargram_vocab_boolean_rumorfold_8-26.csv')
 
 if __name__ == "__main__":
     main()
