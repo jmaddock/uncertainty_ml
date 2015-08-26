@@ -1,28 +1,32 @@
 # coding: utf-8
 
+from collections import OrderedDict
 from pymongo import MongoClient
 from pandas import DataFrame
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import BernoulliNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
+from sklearn.pipeline import FeatureUnion
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.cross_validation import KFold
-from  sklearn import metrics
+from sklearn import metrics
 
 import pickle
 import rumor_terms
 import re
 import numpy
 import random
+import os
 
 # db info
 client = MongoClient() #fix this
 
 #vectorizor info
-analyzer = 'word'
-ngram_range = (1,1)
+analyzer = 'char_wb'
+ngram_range = (1,5)
 stopwords = 'english'
 tfidf = False
 
@@ -56,6 +60,19 @@ def scrub_tweet(text,scrub_url=True):
         #print text
         return text
 
+def find_mention(text):
+    mentions = [
+        ur'\u201c' + '@.*?:',
+        '"@.*?:',
+        'via @.*?:',
+        'via @.*?\b',
+        '@.*?\b',
+    ]
+    for x in mentions:
+        if re.match(x,text):
+            return True
+    return False
+
 # wrapper for scrubbing entire tweet
 def process_tweet(tweet,event,rumor):
     text = scrub_tweet(tweet['text'])
@@ -82,6 +99,14 @@ def import_training_data(fname=None,verbose=False):
             examples += random.sample(neg_examples,len(pos_examples))
             for tweet in examples:
                 if tweet['text']:
+                    features = {
+                        'is_question':False,
+                        'has_mention':False
+                    }
+                    if '?' in tweet['text']:
+                        features['is_question'] = True
+                    if find_mention(tweet['text']):
+                        features['has_mention'] = True
                     text = process_tweet(tweet,event,rumor)
                     if "Uncertainty" in tweet['second_final']:
                         classification = 1
@@ -104,31 +129,134 @@ def import_training_data(fname=None,verbose=False):
         print result
     return result
 
-# DEPRECIATED -- included in pipeline
-def make_feature_set(labled_data,fname=None,unpickle=False,verbose=False):
-    if unpickle:
-        labled_data = pickle.load(labled_data)
-    if tfidf:
-        count_vectorizer = TfidfVectorizer(analyzer=analyzer,
-                                           ngram_range=ngram_range,
-                                           stop_words=stopwords)
-    else:
-        count_vectorizer = CountVectorizer(analyzer=analyzer,
-                                           ngram_range=ngram_range,
-                                           stop_words=stopwords)
-    print labled_data['text'].values
-    counts = count_vectorizer.fit_transform(labled_data['text'].values)
+# standard kfold validation
+def kfold_split(labled_data,n_folds,fname=None):
+    result = KFold(n=len(labled_data), n_folds=n_folds)
     if fname:
         fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
         f = open(fpath, 'w')
         pickle.dump(result,f)
-    if verbose:
-        feature_names = count_vectorizer.get_feature_names()
-        print counts
-    return counts
+    return result
+
+# kfold validation where each "fold" is a rumor
+def rumor_split(labled_data,fname=None):
+    test_indices = []
+    train_indices = []
+    for event in rumor_terms.event_rumor_map:
+        for rumor in rumor_terms.event_rumor_map[event]:
+            test_temp = labled_data.loc[labled_data['rumor'] == rumor].index.tolist()
+            train_temp = labled_data.loc[labled_data['rumor'] != rumor].index.tolist()
+            test_indices.append(test_temp)
+            train_indices.append(train_temp)
+    result = zip(train_indices,test_indices)
+    if fname:
+        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
+        f = open(fpath, 'w')
+        pickle.dump(result,f)
+    return result
+
+# kfold validation where each "fold" is an event
+def event_split(labled_data,fname=None):
+    test_indices = []
+    train_indices = []
+    for event in rumor_terms.event_rumor_map:
+        test_temp = labled_data.loc[labled_data['event'] == event].index.tolist()
+        train_temp = labled_data.loc[labled_data['event'] != event].index.tolist()
+        test_indices.append(test_temp)
+        train_indices.append(train_temp)
+    result = zip(train_indices,test_indices)
+    if fname:
+        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
+        f = open(fpath, 'w')
+        pickle.dump(result,f)
+    return result
+
+# unpickle datasets, or train/test index list
+def unpickle_from_dicts(fname):
+    fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
+    f = open(fpath, 'r')
+    unpickled = pickle.load(f)
+    return unpickled
+
+
+# validate the classifier over zipped training and testing datasets
+# can be a single train/test pair or multiple zipped together
+def validate_cl(labled_data,train_and_test,verbose=False,split_type=None,fname=None,weighted=True):
+    n = len(labled_data)
+    scores = OrderedDict()
+    scores['f1'] = []
+    scores['recall'] = []
+    scores['precision'] = []
+    confusion = numpy.array([[0, 0], [0, 0]])
+    if fname:
+        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'results/') + fname
+        f = open(fpath, 'w')
+        f.write('"rumor/fold","f1","recall","precision"\n')
+    i = 0
+    for x,y in train_and_test:
+        if split_type == 'rumor' or split_type == 'event':
+            train_data = labled_data.loc[x]
+
+            test_text = labled_data.loc[y]['text'].values
+            test_lables = labled_data.loc[y]['class'].values
+        else:
+            train_data = labled_data.iloc[x]
+
+            test_text = labled_data.iloc[y]['text'].values
+            test_lables = labled_data.iloc[y]['class'].values
+
+        cl = train_cl(train_data,'nb',idf=False)
+        predictions = cl.predict(test_text)
+
+        confusion += metrics.confusion_matrix(test_lables, predictions)
+        f1_score = metrics.f1_score(test_lables, predictions, pos_label=1)
+        recall = metrics.recall_score(test_lables, predictions, pos_label=1)
+        precision = metrics.precision_score(test_lables,predictions,pos_label=1)
+        if split_type == 'rumor':
+            rumor = labled_data.loc[y[0]]['rumor']
+        elif split_type == 'event':
+            rumor = labled_data.loc[y[0]]['event']
+        else:
+            rumor = str(i)
+        if verbose:
+            print rumor
+            print 'tweets classified:', len(y)
+            print 'f1: %s' % f1_score
+            print 'recall: %s' % recall
+            print 'precision: %s\n' % precision
+        if fname:
+            f.write('"%s","%s","%s","%s"\n' % (rumor,
+                                               f1_score,
+                                               recall,
+                                               precision))
+        if weighted:
+            scores['f1'].append(f1_score * len(y))
+            scores['recall'].append(recall * len(y))
+            scores['precision'].append(precision * len(y))
+        else:
+            scores['f1'].append(f1_score)
+            scores['recall'].append(recall)
+            scores['precision'].append(precision)
+        i += 1
+
+    print 'Total tweets classified:', len(labled_data)
+    for score in scores:
+        if weighted:
+            scores[score] = sum(scores[score])/n
+        else:
+            scores[score] = sum(scores[score])/i
+    if fname:
+        f.write('"%s","%s","%s","%s"\n' % ('total',
+                                           scores['f1'],
+                                           scores['recall'],
+                                           scores['precision'],
+    for score in scores:
+        print '%s: %s' % (score,scores[score])
+    print('Confusion matrix:')
+    print(confusion)
 
 # make a featureset and train a classifier
-def train_cl(labled_data,cl_type,examples=None):
+def train_cl(labled_data,cl_type,examples=None,idf=False):
     if cl_type == 'max_ent':
         cl = LogisticRegression()
     elif cl_type == 'nb':
@@ -138,10 +266,25 @@ def train_cl(labled_data,cl_type,examples=None):
     else:
         raise InvalidClassifierError('Not a valid classifier name')
     pipeline = Pipeline([
-        ('vectorizer',  CountVectorizer(analyzer=analyzer,
-                                        ngram_range=ngram_range,
-                                        stop_words=stopwords)),
-        ('classifier',  cl)
+        ('features',FeatureUnion([
+            ('bag_of_words',Pipeline([
+                ('vectorizer',CountVectorizer(analyzer='char_wb',
+                                              ngram_range=(1,5),
+                                              stop_words=None)),
+                ('transformer',TfidfTransformer(use_idf=False))
+            ])),
+            ('uncertainty_terms',Pipeline([
+                ('vectorizer',CountVectorizer(analyzer='word',
+                                              ngram_range=(1,1),
+                                              stop_words=None,
+                                              vocabulary=rumor_terms.uncertainty_words)),
+                ('transformer',TfidfTransformer(use_idf=False))
+             ])),
+            #('is_question',Pipeline([
+            #    ('processor',)
+            #]))
+        ])),
+        ('classifier',cl)
     ])
 
     pipeline.fit(labled_data['text'].values,
@@ -150,132 +293,24 @@ def train_cl(labled_data,cl_type,examples=None):
         print pipeline.predict(examples)
     return pipeline
 
-# validate the classifier over zipped training and testing datasets
-# can be a single train/test pair or multiple zipped together
-def validate_cl(labled_data,train_and_test,verbose=False,by_rumor=False):
-    n = len(labled_data)
-    scores = {
-        'f1':[],
-        'recall':[],
-        'precision':[],
-    }
-    confusion = numpy.array([[0, 0], [0, 0]])
-    for x, y in train_and_test:
-        train_data = labled_data.loc[x]
-
-        test_text = labled_data.loc[y]['text'].values
-        test_lables = labled_data.loc[y]['class'].values
-
-        cl = train_cl(train_data,'nb')
-        predictions = cl.predict(test_text)
-
-        confusion += metrics.confusion_matrix(test_lables, predictions)
-        f1_score = metrics.f1_score(test_lables, predictions, pos_label=1)
-        recall = metrics.recall_score(test_lables, predictions, pos_label=1)
-        precision = metrics.precision_score(test_lables,predictions,pos_label=1)
-        if verbose:
-            if by_rumor:
-                print labled_data.loc[y[0]]['rumor']
-            print'tweets classified:', len(y)
-            print 'f1: %s' % f1_score
-            print 'recall: %s' % recall
-            print 'precision: %s\n' % precision
-        scores['f1'].append(f1_score * len(y))
-        scores['recall'].append(recall * len(y))
-        scores['precision'].append(precision * len(y))
-
-    print 'Total tweets classified:', len(labled_data)
-    for score in scores:
-        if by_rumor:
-            print '%s: %s' % (score,sum(scores[score])/len(labled_data))
-        else:
-            print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
-    print('Confusion matrix:')
-    print(confusion)
-
-# standard kfold validation
-def kfold_split(labled_data,n_folds):
-    return KFold(n=len(labled_data), n_folds=n_folds)
-
-# kfold validation where each "fold" is a rumor
-def rumor_split(labled_data):
-    test_indices = []
-    train_indices = []
-    for event in rumor_terms.event_rumor_map:
-        for rumor in rumor_terms.event_rumor_map[event]:
-            test_temp = labled_data.loc[labled_data['rumor'] == rumor].index.tolist()
-            train_temp = labled_data.loc[labled_data['rumor'] != rumor].index.tolist()
-            test_indices.append(test_temp)
-            train_indices.append(train_temp)
-    return zip(train_indices,test_indices)
-
-# kfold validation where each "fold" is an event
-def event_split(labled_data):
-    test_indices = []
-    train_indices = []
-    for event in rumor_terms.event_rumor_map:
-        test_temp = labled_data.loc[labled_data['event'] == event].index.tolist()
-        train_temp = labled_data.loc[labled_data['event'] != event].index.tolist()
-        test_indices.append(test_temp)
-        train_indices.append(train_temp)
-    return zip(train_indices,test_indices)
-
-# DEPRECIATED
-'''def train_and_validate_kfold(labled_data,n_folds=None,split_by_rumor=False):
-    n = len(labled_data)
-    scores = {
-        'f1':[],
-        'recall':[],
-        'precision':[],
-    }
-    confusion = numpy.array([[0, 0], [0, 0]])
-    if split_by_rumor:
-        test_indices = []
-        train_indices = []
-        for event in rumor_terms.event_rumor_map:
-            for rumor in rumor_terms.event_rumor_map[event]:
-                test_temp = []
-                train_temp = []
-                for x in labled_data:
-                    if x['rumor'] == rumor:
-                        test_temp.append(x['index'])
-                    else:
-                        train_temp.append(x['index'])
-                test_indices.append(test_temp)
-                train_indices.append(train_temp)
-        k_fold = zip(train_indices,test_indices)
-    else:
-        k_fold = ## finish this
-
-    for train_indices, test_indices in k_fold:
-        train_data = labled_data.iloc[train_indices]
-
-        test_text = labled_data.iloc[test_indices]['text'].values
-        test_lables = labled_data.iloc[test_indices]['class'].values
-
-        cl = train_cl(train_data)
-        predictions = cl.predict(test_text)
-
-        confusion += metrics.confusion_matrix(test_lables, predictions)
-        f1_score = metrics.f1_score(test_lables, predictions, pos_label=1)
-        recall = metrics.recall_score(test_lables, predictions, pos_label=1)
-        precision = metrics.precision_score(test_lables,predictions,pos_label=1)
-        scores['f1'].append(f1_score)
-        scores['recall'].append(recall)
-        scores['precision'].append(precision)
-
-    print('Total tweets classified:', len(labled_data))
-    for score in scores:
-        print '%s: %s' % (score,sum(scores[score])/len(scores[score]))
-    print('Confusion matrix:')
-    print(confusion)'''
-
 def main():
-    documents = import_training_data(verbose=True)
+    #documents = import_training_data(verbose=True,fname='dataset_8-24.pickle')
+    #documents = import_training_data(verbose=True)
+    documents = unpickle_from_dicts(fname='dataset_8-24.pickle')
+
     #counts = make_feature_set(labled_data=documents,verbose=True)
+
+    #train_and_test = kfold_split(labled_data=documents,n_folds=10,fname='kfold_8-24.pickle')
     #train_and_test = kfold_split(labled_data=documents,n_folds=10)
-    train_and_test = rumor_split(labled_data=documents,)
-    validate_cl(labled_data=documents,train_and_test=train_and_test,verbose=True,by_rumor=True)
+    #train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-24.pickle')
+    #train_and_test = event_split(labled_data=documents,fname='eventfold_8-24.pickle')
+    train_and_test = unpickle_from_dicts(fname='kfold_8-24.pickle')
+
+    validate_cl(labled_data=documents,
+                train_and_test=train_and_test,
+                verbose=True,
+                split_type='kfold',
+                fname='nb_chargram_vocab_kfold_8-26.csv')
 
 if __name__ == "__main__":
     main()

@@ -192,7 +192,7 @@ class UncertaintyAnalysis(object):
                 if self.bigram:
                     print x[0],x[1],results[x]
                 else:
-                    print x,results[x]
+                    print x#,results[x]
         return results
 
 def main():

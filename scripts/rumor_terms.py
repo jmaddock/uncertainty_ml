@@ -353,3 +353,5 @@ event_terms = {
     'baltimore':[],
     'dc_power_outage':[]
 }
+
+uncertainty_words =['may','unconfirmed','true','yet','related','possible','reports','statement','re','wait','unclear','claims','confirm','connection','know','rumours','hope','said','thinking','unknown','knowledge','believed','sure']
