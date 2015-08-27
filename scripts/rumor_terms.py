@@ -1,5 +1,7 @@
 import re
 
+from nltk.stem.porter import *
+
 rumor_terms = {
     ### DC power outage Rumors ##
     'explosion':{
@@ -354,4 +356,10 @@ event_terms = {
     'dc_power_outage':[]
 }
 
-uncertainty_words =['may','unconfirmed','true','yet','related','possible','reports','statement','re','wait','unclear','claims','confirm','connection','know','rumours','hope','said','thinking','unknown','knowledge','believed','sure']
+uncertainty_words = ['may','unconfirmed','true','yet','related','possible','reports','statement','re','wait','unclear','claims','confirm','connection','know','rumours','hope','said','thinking','unknown','knowledge','believed','sure']
+
+uncertainty_words_500 = ['could','confirmation','reportedly','possibly','claiming','looks','really','apparently','report','expected','doubtful','thinks','say','might','probably','sense','seem','actually','claimed','appears','seems','believe','reporting','maybe','trying','hopefully','wonder','says','saying','doubts','confirmed','claim','likely','suspect','almost','reported','doubt','suspicious','supposedly','question','suspects','rumors','rumor','allegedly','must','suggest','resembling','clarify','alleged','fears','considered','unverified','speculation'] + uncertainty_words
+
+validated_uncertainty_words = ['may', 'possibl', 'unconfirm', 'claim', 'relat', 'think', 'report', 'unclear', 'hope', 'believ', 'rumour', 'said', 'like', 'doubt', 'sure', 'look', 'could', 'seem', 'appar', 'obviou', 'might', 'what', 'whether', 'similar', 'cant', 'probabl', 'wonder', 'though', 'arent', 'appear', 'mayb', 'suspect', 'mysteri', 'rumor', 'factcheck', 'saw', 'almost', 'say', 'supposedli', 'potenti', 'develop', 'resembl', 'suggest', 'hmmm', 'question', 'info', 'allegedli', 'cannot', 'doesnt', 'sound', 'poss', 'happen', 'unverifi', 'shown', 'alleg', 'contradictori', 'test']
+
+stemmed = list(set([PorterStemmer().stem(x) for x in uncertainty_words_500]).union(set(validated_uncertainty_words)))

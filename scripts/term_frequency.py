@@ -102,7 +102,7 @@ class UncertaintyAnalysis(object):
         print '[INFO] creating baseline counts'
         for tweet in baseline_tweet_list:
                 if self.bigram:
-                    s = self.process_tweet(tweet=tweet)
+                    s = self.process_tweet(tweet,event,rumor)
                     filtered_words = self._remove_bigram_stopwords(zip(s, islice(s, 1, None)))
                 else:
                     filtered_words = self.process_tweet(tweet,event,rumor)
@@ -115,7 +115,7 @@ class UncertaintyAnalysis(object):
         for tweet in uncertainty_tweet_list:
             #try:
                 if self.bigram:
-                    s = self.process_tweet(tweet=tweet)
+                    s = self.process_tweet(tweet,event,rumor)
                     filtered_words = self._remove_bigram_stopwords(zip(s, islice(s, 1, None)))
                 else:
                     filtered_words = self.process_tweet(tweet,event,rumor)
@@ -188,7 +188,7 @@ class UncertaintyAnalysis(object):
             print '[INFO] sorting'
             ordered_result = [x for x in results]
             ordered_result.sort(key=lambda x: results[x],reverse=True)
-            for x in ordered_result[:50]:
+            for x in ordered_result[:500]:
                 if self.bigram:
                     print x[0],x[1],results[x]
                 else:
@@ -197,7 +197,7 @@ class UncertaintyAnalysis(object):
 
 def main():
     # the rumor identifier
-    u = UncertaintyAnalysis(host='',stem=False)
+    u = UncertaintyAnalysis(host='',stem=True,bigram=False)
     u.multiple_event_uncertainty_terms_normalized(output=True)
     #u.top_uncertainty_words(stem=False,bigram=True)
     #u.uncertainty_tf_idf()

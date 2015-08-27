@@ -25,7 +25,7 @@ import random
 import os
 
 # db info
-client = MongoClient() #fix this
+client = MongoClient('z') #fix this
 
 #vectorizor info
 analyzer = 'char_wb'
@@ -100,6 +100,16 @@ def process_tweet(tweet,event,rumor):
         cleaned += word + ' '
     return cleaned
 
+def get_tweet_meta_data(tweet,event,rumor):
+    unique_id = int(tweet['db_id'])
+    if event == 'sydeysiege':
+        mapping = client['sydeysiege_cache'][rumor].find_one({'db_id':unique_id})
+    else:
+        mapping = client['rumor_compression'][rumor].find_one({'db_id':unique_id})
+    tweet_id = mapping['id'][0]
+    full_tweet = client[event][rumor].find_one({'id':tweet_id})
+    return full_tweet
+
 # import all data from mongo into a dataframe with columns text, class, and
 # rumor
 # pos = 1, neg = 0
@@ -116,8 +126,9 @@ def import_training_data(fname=None,verbose=False):
             examples += random.sample(neg_examples,len(pos_examples))
             for tweet in examples:
                 if tweet['text']:
+                    full_tweet = get_tweet_meta_data(tweet,event,rumor)
                     features = {}
-                    features['has_mention'] = find_mention(tweet['text'])
+                    features['has_mention'] = find_mention(full_tweet['text'])
                     if '?' in tweet['text']:
                         features['is_question'] = True
                     else:
@@ -295,9 +306,9 @@ def train_cl(labled_data,cl_type,examples=None,idf=False):
                 ('vectorizer',CountVectorizer(analyzer='word',
                                               ngram_range=(1,1),
                                               stop_words=None,
-                                              vocabulary=rumor_terms.uncertainty_words)),
+                                              vocabulary=rumor_terms.stemmed)),
                 ('transformer',TfidfTransformer(use_idf=False))
-             ])),
+            ])),
             ('boolean_features',Pipeline([
                 ('extractor',booleanFeatureExtractor()),
                 ('vectorizer',DictVectorizer())
@@ -307,6 +318,7 @@ def train_cl(labled_data,cl_type,examples=None,idf=False):
     ])
     pipeline.fit(labled_data,
                  labled_data['class'].values)
+
     if examples:
         print pipeline.predict(examples)
     return pipeline
@@ -329,7 +341,8 @@ def main():
                 cl_type='nb',
                 verbose=True,
                 split_type='rumor',
-                fname='max_ent_chargram_vocab_boolean_rumorfold_8-26.csv')
+                #fname='max_ent_chargram_vocab_boolean_rumorfold_8-26.csv',
+                weighted=False)
 
 if __name__ == "__main__":
     main()
