@@ -336,7 +336,7 @@ def main():
     #train_and_test = event_split(labled_data=documents,fname='eventfold_8-24.pickle')
     #train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
-    #validate_cl(labled_data=documents,
+    validate_cl(labled_data=documents,
                 train_and_test=train_and_test,
                 cl_type='nb',
                 verbose=True,
