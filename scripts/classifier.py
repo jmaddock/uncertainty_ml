@@ -128,7 +128,7 @@ def import_training_data(fname=None,verbose=False):
                 if tweet['text']:
                     full_tweet = get_tweet_meta_data(tweet,event,rumor)
                     features = {}
-                    if full_tweet['text']:
+                    if full_tweet:
                         features['has_mention'] = find_mention(full_tweet['text'])
                     else:
                         features['has_mention'] = False
