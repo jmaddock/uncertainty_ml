@@ -324,19 +324,19 @@ def train_cl(labled_data,cl_type,examples=None,idf=False):
     return pipeline
 
 def main():
-    #documents = import_training_data(verbose=True,fname='dataset_8-26.pickle')
+    documents = import_training_data(verbose=True,fname='dataset_8-27.pickle')
     #documents = import_training_data(verbose=True)
-    documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
+    #documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
     #train_and_test = kfold_split(labled_data=documents,n_folds=10,fname='kfold_8-24.pickle')
     #train_and_test = kfold_split(labled_data=documents,n_folds=10)
-    #train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-26.pickle')
+    train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-27.pickle')
     #train_and_test = event_split(labled_data=documents,fname='eventfold_8-24.pickle')
-    train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
+    #train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
-    validate_cl(labled_data=documents,
+    #validate_cl(labled_data=documents,
                 train_and_test=train_and_test,
                 cl_type='nb',
                 verbose=True,
