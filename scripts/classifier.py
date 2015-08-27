@@ -106,9 +106,12 @@ def get_tweet_meta_data(tweet,event,rumor):
         mapping = client['sydeysiege_cache'][rumor].find_one({'db_id':unique_id})
     else:
         mapping = client['rumor_compression'][rumor].find_one({'db_id':unique_id})
-    tweet_id = mapping['id'][0]
-    full_tweet = client[event][rumor].find_one({'id':tweet_id})
-    return full_tweet
+    if mapping:
+        tweet_id = mapping['id'][0]
+        full_tweet = client[event][rumor].find_one({'id':tweet_id})
+        return full_tweet
+    else:
+        return None
 
 # import all data from mongo into a dataframe with columns text, class, and
 # rumor
