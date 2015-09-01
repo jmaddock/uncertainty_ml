@@ -181,32 +181,32 @@ def import_training_data(fname=None,verbose=False):
         print result
     return result
 
-def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
-    count = 0
-    result = DataFrame({'text':[],'event':[],'features':[]})
-    if verbose:
-        print 'processing data from %s' % (event)
-    examples = client[event]['tweets'].find()
-    for tweet in examples:
-        if tweet['text']:
-            print tweet['id']
-            #full_tweet = get_tweet_meta_data(tweet,event,rumor)
-            features = {}
-            #if full_tweet:
-            #    features['has_mention'] = find_mention(full_tweet['text'])
-            #else:
-            #    features['has_mention'] = False
-            if '?' in tweet['text']:
-                features['is_question'] = True
-            else:
-                features['is_question'] = False
-            text = process_tweet(tweet,event=event)
-            result = result.append(DataFrame({
-                'text':text,
-                'event':event,
-                'features':json.dumps(features)
-            },index=[count]))
-            count += 1
+def format_data_for_uncertainty_classification(fname=None,verbose=False):
+    for event in rumor_terms.event_rumor_map:
+        count = 0
+        result = DataFrame({'text':[],'event':[],'features':[]})
+        if verbose:
+            print 'processing data from %s' % (event)
+        examples = client[event]['tweets'].find()
+        for tweet in examples:
+            if tweet['text']:
+                #full_tweet = get_tweet_meta_data(tweet,event,rumor)
+                features = {}
+                #if full_tweet:
+                #    features['has_mention'] = find_mention(full_tweet['text'])
+                #else:
+                #    features['has_mention'] = False
+                if '?' in tweet['text']:
+                    features['is_question'] = True
+                else:
+                    features['is_question'] = False
+                text = process_tweet(tweet,event=event)
+                result = result.append(DataFrame({
+                    'text':text,
+                    'event':event,
+                    'features':json.dumps(features)
+                },index=[count]))
+                count += 1
     result = result.reindex(numpy.random.permutation(result.index))
 
     if fname:
@@ -350,16 +350,14 @@ def validate_cl(labled_data,train_and_test,cl_type,verbose=False,split_type=None
 
 # use a split train/test dataset to find all documents in test set labled as
 # uncertainty
-def find_uncertainty(labled_data,train_and_test,cl_type,fname,verbose=False):
+def find_uncertainty(labled_data,train_and_test,test_dataset,cl_type,fname,verbose=False):
     fpath = os.path.join(os.path.dirname(__file__),os.pardir,'results/') + fname
     f = open(fpath, 'w')
     f.write('"event","text"\n')
     for x,y in train_and_test:
         event = labled_data.loc[y[0]]['event']
         train_data = labled_data.loc[x]
-        test_data = format_data_for_uncertainty_classification(event=event,
-                                                               fname=None,
-                                                               verbose=verbose)
+        test_data = test_dataset.loc[test_dataset['event'] == event]['text'].values
         cl = train_cl(train_data,cl_type)
         print test_data
         if verbose:
