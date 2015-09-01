@@ -70,7 +70,11 @@ class KeyWord(object):
 # revomve rumore and event specific stopwords
 # update this to use nltk/scikit-learn?
 def remove_stopwords(words,event,rumor):
-    stop_words = rumor_terms.filter_words[rumor] + rumor_terms.event_terms[event]
+    stop_words = []
+    if rumor:
+        stop_words += rumor_terms.filter_words[rumor]
+    if event:
+        stop_words += rumor_terms.event_terms[event]
     filtered_words = [re.sub("'","",w.lower()) for w in words if not re.sub("'","",w.lower()) in stop_words]
     return filtered_words
 
@@ -105,10 +109,11 @@ def find_mention(text):
     return False
 
 # wrapper for scrubbing entire tweet
-def process_tweet(tweet,event,rumor):
+def process_tweet(tweet,event=None,rumor=None):
     text = scrub_tweet(tweet['text'])
     words = re.findall(r"[\w']+", text)
-    words = remove_stopwords(words,event,rumor)
+    if event or rumor:
+        words = remove_stopwords(words,event,rumor)
     cleaned = ''
     for word in words:
         cleaned += word + ' '
@@ -194,7 +199,7 @@ def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
                 features['is_question'] = True
             else:
                 features['is_question'] = False
-            text = process_tweet(tweet,event,rumor)
+            text = process_tweet(tweet,event=event)
             if "Uncertainty" in tweet['second_final']:
                 classification = 1
             else:
