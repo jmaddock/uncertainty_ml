@@ -185,7 +185,7 @@ def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
     count = 0
     result = DataFrame({'text':[],'event':[],'features':[]})
     if verbose:
-        print 'processing data from %s, %s' % (event)
+        print 'processing data from %s' % (event)
     examples = client[event]['tweets'].find()
     for tweet in examples:
         if tweet['text']:
