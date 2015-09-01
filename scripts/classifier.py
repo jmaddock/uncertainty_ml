@@ -421,9 +421,9 @@ def train_cl(labled_data,cl_type,examples=None,fname=None):
     return pipeline
 
 def main():
-    #documents = import_training_data(verbose=True,fname='dataset_8-27.pickle')
+    documents = import_training_data(verbose=True,fname='dataset_9-01.pickle')
     #documents = import_training_data(verbose=True)
-    documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
+    #documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
