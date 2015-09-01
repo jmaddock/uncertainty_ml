@@ -183,7 +183,7 @@ def import_training_data(fname=None,verbose=False):
 
 def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
     count = 0
-    result = DataFrame({'text':[],'rumor':[],'event':[],'features':[]})
+    result = DataFrame({'text':[],'event':[],'features':[]})
     if verbose:
         print 'processing data from %s, %s' % (event)
     examples = client[event]['tweets'].find()
@@ -202,7 +202,6 @@ def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
             text = process_tweet(tweet,event=event)
             result = result.append(DataFrame({
                 'text':text,
-                'rumor':rumor,
                 'event':event,
                 'features':json.dumps(features)
             },index=[count]))
