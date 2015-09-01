@@ -421,16 +421,19 @@ def train_cl(labled_data,cl_type,examples=None,fname=None):
     return pipeline
 
 def main():
-    documents = import_training_data(verbose=True,fname='dataset_9-01.pickle')
+    #documents = import_training_data(verbose=True,fname='dataset_9-01.pickle')
     #documents = import_training_data(verbose=True)
     #documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
+
+    to_classify = format_data_for_uncertainty_classification(fname='to_classify_9-01.pickle',
+                                                             verbose=True)
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
     #train_and_test = kfold_split(labled_data=documents,n_folds=10,fname='kfold_8-24.pickle')
     #train_and_test = kfold_split(labled_data=documents,n_folds=10)
     #train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-27.pickle')
-    train_and_test = event_split(labled_data=documents,fname='eventfold_9-01.pickle')
+    #train_and_test = event_split(labled_data=documents,fname='eventfold_9-01.pickle')
     #train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
     '''validate_cl(labled_data=documents,
