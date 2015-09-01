@@ -189,6 +189,7 @@ def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
     examples = client[event]['tweets'].find()
     for tweet in examples:
         if tweet['text']:
+            print tweet['id']
             #full_tweet = get_tweet_meta_data(tweet,event,rumor)
             features = {}
             #if full_tweet:
@@ -358,9 +359,11 @@ def find_uncertainty(labled_data,train_and_test,cl_type,fname,verbose=False):
         train_data = labled_data.loc[x]
         test_data = format_data_for_uncertainty_classification(event=event,
                                                                fname=None,
-                                                               verbose=True)
+                                                               verbose=verbose)
         cl = train_cl(train_data,cl_type)
         print test_data
+        if verbose:
+            print 'making predictions...'
         predictions = cl.predict(test_data)
         print predictions
         pos_lables = test_data.iloc[numpy.where(predictions == 1)[0]]['text'].values
