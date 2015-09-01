@@ -53,6 +53,20 @@ class booleanFeatureExtractor(TransformerMixin):
     def fit(self, X, y=None, **fit_params):
         return self
 
+# classifier only based on keyword search for baseline statistics
+class KeyWord(object):
+    def __init__(self,keywords):
+        self.keywords = keywords
+    def predict(self,test_data):
+        results = []
+        for text in test_data['text'].values:
+            match = 0
+            for keyword in self.keywords:
+                if keyword in text:
+                    match = 1
+            results.append(match)
+        return results
+
 # revomve rumore and event specific stopwords
 # update this to use nltk/scikit-learn?
 def remove_stopwords(words,event,rumor):
@@ -129,12 +143,12 @@ def import_training_data(fname=None,verbose=False):
             examples += random.sample(neg_examples,len(pos_examples))
             for tweet in examples:
                 if tweet['text']:
-                    full_tweet = get_tweet_meta_data(tweet,event,rumor)
+                    #full_tweet = get_tweet_meta_data(tweet,event,rumor)
                     features = {}
-                    if full_tweet:
-                        features['has_mention'] = find_mention(full_tweet['text'])
-                    else:
-                        features['has_mention'] = False
+                    #if full_tweet:
+                    #    features['has_mention'] = find_mention(full_tweet['text'])
+                    #else:
+                    #    features['has_mention'] = False
                     if '?' in tweet['text']:
                         features['is_question'] = True
                     else:
@@ -161,6 +175,48 @@ def import_training_data(fname=None,verbose=False):
     if verbose:
         print result
     return result
+
+def format_data_for_uncertainty_classification(event,fname=None,verbose=False):
+    count = 0
+    result = DataFrame({'text':[],'class':[],'rumor':[],'event':[],'features':[]})
+    if verbose:
+        print 'processing data from %s, %s' % (event)
+    examples = client[event]['tweets'].find()
+    for tweet in examples:
+        if tweet['text']:
+            #full_tweet = get_tweet_meta_data(tweet,event,rumor)
+            features = {}
+            #if full_tweet:
+            #    features['has_mention'] = find_mention(full_tweet['text'])
+            #else:
+            #    features['has_mention'] = False
+            if '?' in tweet['text']:
+                features['is_question'] = True
+            else:
+                features['is_question'] = False
+            text = process_tweet(tweet,event,rumor)
+            if "Uncertainty" in tweet['second_final']:
+                classification = 1
+            else:
+                classification = 0
+            result = result.append(DataFrame({
+                'text':text,
+                'class':classification,
+                'rumor':rumor,
+                'event':event,
+                'features':json.dumps(features)
+            },index=[count]))
+            count += 1
+    result = result.reindex(numpy.random.permutation(result.index))
+
+    if fname:
+        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
+        f = open(fpath, 'w')
+        pickle.dump(result,f)
+    if verbose:
+        print result
+    return result
+
 
 # standard kfold validation
 def kfold_split(labled_data,n_folds,fname=None):
@@ -238,9 +294,13 @@ def validate_cl(labled_data,train_and_test,cl_type,verbose=False,split_type=None
             test_data = labled_data.iloc[y]
             test_lables = labled_data.iloc[y]['class'].values
 
-        cl = train_cl(train_data,cl_type,idf=False)
-        predictions = cl.predict(test_data)
+        if cl_type == 'keyword':
+            cl = KeyWord(rumor_terms.stemmed)
+        else:
+            cl = train_cl(train_data,cl_type,idf=False)
 
+        predictions = cl.predict(test_data)
+        print predictions
         confusion += metrics.confusion_matrix(test_lables, predictions)
         f1_score = metrics.f1_score(test_lables, predictions, pos_label=1)
         recall = metrics.recall_score(test_lables, predictions, pos_label=1)
@@ -288,8 +348,36 @@ def validate_cl(labled_data,train_and_test,cl_type,verbose=False,split_type=None
     print('Confusion matrix:')
     print(confusion)
 
+# use a split train/test dataset to find all documents in test set labled as
+# uncertainty
+def find_uncertainty(labled_data,train_and_test,cl_type,fname,verbose=False):
+    fpath = os.path.join(os.path.dirname(__file__),os.pardir,'results/') + fname
+    f = open(fpath, 'w')
+    f.write('"event","text"\n')
+    for x,y in train_and_test:
+        event = labled_data.loc[y[0]]['event']
+        train_data = labled_data.loc[x]
+        test_data = format_data_for_uncertainty_classification(event=event,
+                                                               fname=None,
+                                                               verbose=False)
+        cl = train_cl(train_data,cl_type)
+        print test_data
+        predictions = cl.predict(test_data)
+        print predictions
+        pos_lables = test_data.iloc[numpy.where(predictions == 1)[0]]['text'].values
+        print pos_lables
+
+        if verbose:
+            print rumor
+            print 'tweets classified:', len(y)
+        for text in pos_lables:
+            f.write('"%s","%s"\n' % (rumor,
+                                     text))
+
+    print 'Total tweets classified:', len(labled_data)
+
 # make a featureset and train a classifier
-def train_cl(labled_data,cl_type,examples=None,idf=False):
+def train_cl(labled_data,cl_type,examples=None,fname=None):
     if cl_type == 'max_ent':
         cl = LogisticRegression()
     elif cl_type == 'nb':
@@ -324,31 +412,40 @@ def train_cl(labled_data,cl_type,examples=None,idf=False):
     ])
     pipeline.fit(labled_data,
                  labled_data['class'].values)
-
+    if fname:
+        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
+        f = open(fpath, 'w')
+        pickle.dump(result,f)
     if examples:
         print pipeline.predict(examples)
     return pipeline
 
 def main():
-    documents = import_training_data(verbose=True,fname='dataset_8-27.pickle')
+    #documents = import_training_data(verbose=True,fname='dataset_8-27.pickle')
     #documents = import_training_data(verbose=True)
-    #documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
+    documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
     #train_and_test = kfold_split(labled_data=documents,n_folds=10,fname='kfold_8-24.pickle')
     #train_and_test = kfold_split(labled_data=documents,n_folds=10)
-    train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-27.pickle')
-    #train_and_test = event_split(labled_data=documents,fname='eventfold_8-24.pickle')
+    #train_and_test = rumor_split(labled_data=documents,fname='rumorfold_8-27.pickle')
+    train_and_test = event_split(labled_data=documents,fname='eventfold_9-01.pickle')
     #train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
-    validate_cl(labled_data=documents,
+    '''validate_cl(labled_data=documents,
                 train_and_test=train_and_test,
                 cl_type='nb',
                 verbose=True,
                 split_type='rumor',
                 #fname='max_ent_chargram_vocab_boolean_rumorfold_8-26.csv',
-                weighted=False)
+                weighted=False)'''
+
+    find_uncertainty(labled_data=documents,
+                     train_and_test=train_and_test,
+                     cl_type='nb',
+                     fname='uncertainty_tweets_9-01.csv',
+                     verbose=True)
 
 if __name__ == "__main__":
     main()
