@@ -358,7 +358,7 @@ def find_uncertainty(labled_data,train_and_test,cl_type,fname,verbose=False):
         train_data = labled_data.loc[x]
         test_data = format_data_for_uncertainty_classification(event=event,
                                                                fname=None,
-                                                               verbose=False)
+                                                               verbose=True)
         cl = train_cl(train_data,cl_type)
         print test_data
         predictions = cl.predict(test_data)
