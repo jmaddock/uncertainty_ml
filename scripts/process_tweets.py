@@ -48,17 +48,51 @@ def process_tweet(tweet,event=None,rumor=None):
         cleaned += word + ' '
     return cleaned
 
-def process_and_pickle(event_list,fname,insert=False,verbose=False):
+def pickle_from_db(event_list,fname,verbose=False):
     for event in event_list:
+        result = DataFrame({'text':[],'event':[],'features':[],'unique_id':[]})
         count = 0
-        result = DataFrame({'text':[],'event':[],'features':[]})
-        if insert:
-            insert_list = []
+        if verbose:
+            print 'processing data from %s' % (event)
+        examples = client['uncertainty_ml'][event].find()
+        for tweet in examples:
+            if verbose and count % 1000 == 0 and count != 0:
+                print 'processed %s tweets' % count
+            if tweet['text']:
+                result = result.append(DataFrame({
+                    'text':tweet['text'],
+                    'event':event,
+                    'features':json.dumps(tweet['features']),
+                    'unique_id':tweet['unique_id']
+                },index=[count]))
+                count += 1
+        client['uncertainty_ml'][event].insert(insert_list)
+        result = result.reindex(numpy.random.permutation(result.index))
+
+        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + event + '_' + fname
+        f = open(fpath, 'w')
+        pickle.dump(result,f)
+        f.close()
+        if verbose:
+            print result
+
+def process_and_insert(event_list,verbose=False):
+    for event in event_list:
+        try:
+            unique_id = long(client['uncertainty_ml'][event].find().sort('unique_id',-1).limit(1).next()['unique_id'] + 1)
+        except StopIteration:
+            unique_id = long(0)
+        count = 0
         if verbose:
             print 'processing data from %s' % (event)
         examples = client[event]['tweets'].find()
         for tweet in examples:
-            if verbose and count % 1000 == 0:
+            if unique_id == 1:
+                if verbose:
+                    print 'creating indexes'
+                    client['uncertainty_ml'][event].ensure_index('text')
+                    client['uncertainty_ml'][event].ensure_index('unique_id')
+            if verbose and count % 1000 == 0 and count != 0:
                 print 'processed %s tweets' % count
             if tweet['text']:
                 #full_tweet = get_tweet_meta_data(tweet,event,rumor)
@@ -72,38 +106,43 @@ def process_and_pickle(event_list,fname,insert=False,verbose=False):
                 else:
                     features['is_question'] = False
                 text = process_tweet(tweet,event=event)
-                result = result.append(DataFrame({
-                    'text':text,
-                    'event':event,
-                    'features':json.dumps(features)
-                },index=[count]))
-                if insert:
-                    insert_list.append({
-                        'id':tweet['id'],
+                match = client['uncertainty_ml'][event].find_one({'text':text})
+                if match:
+                    client['uncertainty_ml'][event].update(
+                        {'unique_id':match['unique_id']},
+                        {
+                            '$addToSet':{
+                                'id':tweet['id'],
+                                'entities.user_mentions':tweet['entities']['user_mentions'],
+		                #'entities.symbols':tweet['entities']['symbols'],
+		                #'entities.trends':tweet['entities']['trends'],
+		                'entities.hashtags':tweet['entities']['hashtags'],
+		                'entities.urls':tweet['entities']['urls'],
+                                'created_ts':tweet['created_ts'],
+			    }
+                        }
+                    )
+                else:
+                    client['uncertainty_ml'][event].insert({
+                        'unique_id':unique_id,
+                        'id':[tweet['id']],
+                        'entities':{
+                            'user_mentions':[tweet['entities']['user_mentions']],
+		            #'symbols':[tweet['entities']['symbols']],
+		            #'trends':[tweet['entities']['trends']],
+		            'hashtags':[tweet['entities']['hashtags']],
+		            'urls':[tweet['entities']['urls']],
+                        },
+                        'created_ts':[tweet['created_ts']],
                         'text':text,
                         'event':event,
                         'features':features
                     })
-                    if count % 1000 == 0:
-                        client['uncertainty_ml'][event].insert(insert_list)
-                        insert_list = []
+                    unique_id += 1
                 count += 1
-        if insert:
-            client['uncertainty_ml'][event].insert(insert_list)
-            insert_list = []
-        result = result.reindex(numpy.random.permutation(result.index))
-
-        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + event + '_' + fname
-        f = open(fpath, 'w')
-        pickle.dump(result,f)
-        f.close()
-        if verbose:
-            print result
 
 def main():
-    process_and_pickle(event_list=['sydneysiege','new_boston','mh17'],
-                       fname='to_classify_9-02.pickle',
-                       insert=True,
+    process_and_insert(event_list=['sydneysiege','new_boston','mh17'],
                        verbose=True
     )
 
