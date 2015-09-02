@@ -313,29 +313,26 @@ def validate_cl(labled_data,train_and_test,cl_type,verbose=False,split_type=None
 
 # use a split train/test dataset to find all documents in test set labled as
 # uncertainty
-def find_uncertainty(labled_data,train_and_test,test_dataset,cl_type,fname,verbose=False):
+def find_uncertainty(labled_data,test_data,cl_type,fname,event,verbose=False):
     fpath = os.path.join(os.path.dirname(__file__),os.pardir,'results/') + fname
     f = open(fpath, 'w')
     f.write('"event","text"\n')
-    for x,y in train_and_test:
-        event = labled_data.loc[y[0]]['event']
-        train_data = labled_data.loc[x]
-        test_data = test_dataset.loc[test_dataset['event'] == event]['text'].values
-        cl = train_cl(train_data,cl_type)
-        print test_data
-        if verbose:
-            print 'making predictions...'
-        predictions = cl.predict(test_data)
-        print predictions
-        pos_lables = test_data.iloc[numpy.where(predictions == 1)[0]]['text'].values
-        print pos_lables
+    train_data = labled_data.loc[labled_data['event'] != event]
+    cl = train_cl(train_data,cl_type)
+    print test_data
+    if verbose:
+        print 'making predictions...'
+    predictions = cl.predict(test_data)
+    print predictions
+    pos_lables = test_data.iloc[numpy.where(predictions == 1)[0]]['text'].values
+    print pos_lables
 
-        if verbose:
-            print rumor
-            print 'tweets classified:', len(y)
-        for text in pos_lables:
-            f.write('"%s","%s"\n' % (rumor,
-                                     text))
+    if verbose:
+        print rumor
+        print 'tweets classified:', len(y)
+    for text in pos_lables:
+        f.write('"%s","%s"\n' % (rumor,
+                                 text))
 
     print 'Total tweets classified:', len(labled_data)
 
@@ -387,9 +384,6 @@ def main():
     #documents = import_training_data(verbose=True,fname='dataset_9-01.pickle')
     #documents = import_training_data(verbose=True)
     #documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
-
-    to_classify = format_data_for_uncertainty_classification(fname='to_classify_9-01.pickle',
-                                                             verbose=True)
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
