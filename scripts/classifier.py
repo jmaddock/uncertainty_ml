@@ -181,43 +181,6 @@ def import_training_data(fname=None,verbose=False):
         print result
     return result
 
-def format_data_for_uncertainty_classification(fname=None,verbose=False):
-    for event in rumor_terms.event_rumor_map:
-        count = 0
-        result = DataFrame({'text':[],'event':[],'features':[]})
-        if verbose:
-            print 'processing data from %s' % (event)
-        examples = client[event]['tweets'].find()
-        for tweet in examples:
-            if tweet['text']:
-                #full_tweet = get_tweet_meta_data(tweet,event,rumor)
-                features = {}
-                #if full_tweet:
-                #    features['has_mention'] = find_mention(full_tweet['text'])
-                #else:
-                #    features['has_mention'] = False
-                if '?' in tweet['text']:
-                    features['is_question'] = True
-                else:
-                    features['is_question'] = False
-                text = process_tweet(tweet,event=event)
-                result = result.append(DataFrame({
-                    'text':text,
-                    'event':event,
-                    'features':json.dumps(features)
-                },index=[count]))
-                count += 1
-    result = result.reindex(numpy.random.permutation(result.index))
-
-    if fname:
-        fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + fname
-        f = open(fpath, 'w')
-        pickle.dump(result,f)
-    if verbose:
-        print result
-    return result
-
-
 # standard kfold validation
 def kfold_split(labled_data,n_folds,fname=None):
     result = KFold(n=len(labled_data), n_folds=n_folds)
@@ -444,11 +407,11 @@ def main():
                 #fname='max_ent_chargram_vocab_boolean_rumorfold_8-26.csv',
                 weighted=False)'''
 
-    find_uncertainty(labled_data=documents,
+    '''find_uncertainty(labled_data=documents,
                      train_and_test=train_and_test,
                      cl_type='nb',
-                     fname='uncertainty_tweets_9-01.csv',
-                     verbose=True)
+                     fname='uncertainty_tweets_9-02.csv',
+                     verbose=True)'''
 
 if __name__ == "__main__":
     main()
