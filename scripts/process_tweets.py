@@ -1,6 +1,8 @@
 from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
 from pandas import DataFrame
 
+import pymongo
 import rumor_terms
 import numpy
 import os
@@ -10,6 +12,7 @@ import json
 
 # db info
 client = MongoClient('z') #fix this
+insert_db = 'uncertainty_ml_no_meta'
 
 def remove_stopwords(words,event,rumor):
     stop_words = []
@@ -66,7 +69,8 @@ def pickle_from_db(event_list,fname,verbose=False):
                     'unique_id':tweet['unique_id']
                 },index=[count]))
                 count += 1
-        client['uncertainty_ml'][event].insert(insert_list)
+                if count == 10000:
+                    break
         result = result.reindex(numpy.random.permutation(result.index))
 
         fpath = os.path.join(os.path.dirname(__file__),os.pardir,'dicts/') + event + '_' + fname
@@ -76,10 +80,10 @@ def pickle_from_db(event_list,fname,verbose=False):
         if verbose:
             print result
 
-def process_and_insert(event_list,verbose=False):
+def process_and_insert_meta_data(event_list,verbose=False):
     for event in event_list:
         try:
-            unique_id = long(client['uncertainty_ml'][event].find().sort('unique_id',-1).limit(1).next()['unique_id'] + 1)
+            unique_id = long(client[insert_db][event].find().sort('unique_id',-1).limit(1).next()['unique_id'] + 1)
         except StopIteration:
             unique_id = long(0)
         count = 0
@@ -90,8 +94,8 @@ def process_and_insert(event_list,verbose=False):
             if unique_id == 1:
                 if verbose:
                     print 'creating indexes'
-                    client['uncertainty_ml'][event].ensure_index('text')
-                    client['uncertainty_ml'][event].ensure_index('unique_id')
+                    client[insert_db][event].ensure_index('text')
+                    client[insert_db][event].ensure_index('unique_id')
             if verbose and count % 1000 == 0 and count != 0:
                 print 'processed %s tweets' % count
             if tweet['text']:
@@ -106,9 +110,9 @@ def process_and_insert(event_list,verbose=False):
                 else:
                     features['is_question'] = False
                 text = process_tweet(tweet,event=event)
-                match = client['uncertainty_ml'][event].find_one({'text':text})
+                match = client[insert_db][event].find_one({'text':text})
                 if match:
-                    client['uncertainty_ml'][event].update(
+                    client[insert_db][event].update(
                         {'unique_id':match['unique_id']},
                         {
                             '$addToSet':{
@@ -123,7 +127,7 @@ def process_and_insert(event_list,verbose=False):
                         }
                     )
                 else:
-                    client['uncertainty_ml'][event].insert({
+                    client[insert_db][event].insert({
                         'unique_id':unique_id,
                         'id':[tweet['id']],
                         'entities':{
@@ -141,10 +145,52 @@ def process_and_insert(event_list,verbose=False):
                     unique_id += 1
                 count += 1
 
+def process_and_insert(event_list,verbose=False):
+    for event in event_list:
+        try:
+            unique_id = long(client[insert_db][event].find().sort('unique_id',-1).limit(1).next()['unique_id'] + 1)
+        except StopIteration:
+            unique_id = long(0)
+        count = 0
+        if verbose:
+            print 'processing data from %s' % (event)
+        examples = client[event]['tweets'].find({'lang':'en'})
+        for tweet in examples:
+            if unique_id == 1:
+                if verbose:
+                    print 'creating indexes'
+                    client[insert_db][event].create_index([('text',pymongo.DESCENDING)],unique=True)
+                    client[insert_db][event].ensure_index('unique_id')
+            if verbose and count % 1000 == 0 and count != 0:
+                print 'processed %s tweets' % count
+            if tweet['text']:
+                features = {}
+                if '?' in tweet['text']:
+                    features['is_question'] = True
+                else:
+                    features['is_question'] = False
+                text = process_tweet(tweet,event=event)
+                document = {
+                    'unique_id':unique_id,
+                    'id':tweet['id'],
+                    'text':text,
+                    'event':event,
+                    'features':features
+                }
+                try:
+                    client[insert_db][event].insert(document)
+                    unique_id += 1
+                except DuplicateKeyError:
+                    pass
+            count += 1
+
 def main():
     process_and_insert(event_list=['sydneysiege','new_boston','mh17'],
                        verbose=True
     )
+    '''pickle_from_db(event_list=['sydneysiege'],
+                   fname='testdump_9-02.pickle',
+                   verbose=True)'''
 
 if __name__ == "__main__":
     main()

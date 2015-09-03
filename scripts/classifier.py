@@ -328,13 +328,12 @@ def find_uncertainty(labled_data,test_data,cl_type,fname,event,verbose=False):
     print pos_lables
 
     if verbose:
-        print rumor
-        print 'tweets classified:', len(y)
+        print event
+        print 'Total tweets classified:', len(test_data)
+        print 'Total uncertainty tweets:', len(pos_lables)
     for text in pos_lables:
-        f.write('"%s","%s"\n' % (rumor,
+        f.write('"%s","%s"\n' % (event,
                                  text))
-
-    print 'Total tweets classified:', len(labled_data)
 
 # make a featureset and train a classifier
 def train_cl(labled_data,cl_type,examples=None,fname=None):
@@ -383,7 +382,7 @@ def train_cl(labled_data,cl_type,examples=None,fname=None):
 def main():
     #documents = import_training_data(verbose=True,fname='dataset_9-01.pickle')
     #documents = import_training_data(verbose=True)
-    #documents = unpickle_from_dicts(fname='dataset_8-26.pickle')
+    documents = unpickle_from_dicts(fname='dataset_9-01.pickle')
 
     #counts = make_feature_set(labled_data=documents,verbose=True)
 
@@ -393,6 +392,8 @@ def main():
     #train_and_test = event_split(labled_data=documents,fname='eventfold_9-01.pickle')
     #train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
+    test_data = unpickle_from_dicts(fname='sydneysiege_testdump_9-02.pickle')
+
     '''validate_cl(labled_data=documents,
                 train_and_test=train_and_test,
                 cl_type='nb',
@@ -401,11 +402,12 @@ def main():
                 #fname='max_ent_chargram_vocab_boolean_rumorfold_8-26.csv',
                 weighted=False)'''
 
-    '''find_uncertainty(labled_data=documents,
-                     train_and_test=train_and_test,
+    find_uncertainty(labled_data=documents,
+                     test_data=test_data,
                      cl_type='nb',
                      fname='uncertainty_tweets_9-02.csv',
-                     verbose=True)'''
+                     event='sydneysiege',
+                     verbose=True)
 
 if __name__ == "__main__":
     main()
