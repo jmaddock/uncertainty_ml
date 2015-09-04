@@ -324,12 +324,13 @@ def find_uncertainty(labled_data,test_data,cl_type,fname,event,verbose=False):
         print 'making predictions...'
     predictions = cl.predict(test_data)
     print predictions
-    pos_lables = test_data.iloc[numpy.where(predictions == 1)[0]]['text'].values
+    pos_lables = test_data.iloc[numpy.where(predictions == 1)[0]]['raw_text'].values
     print pos_lables
 
     if verbose:
         print event
-        print 'Total tweets classified:', len(test_data)
+        print 'Total tweets classified:', l
+        en(test_data)
         print 'Total uncertainty tweets:', len(pos_lables)
     for text in pos_lables:
         f.write('"%s","%s"\n' % (event,
@@ -392,7 +393,7 @@ def main():
     #train_and_test = event_split(labled_data=documents,fname='eventfold_9-01.pickle')
     #train_and_test = unpickle_from_dicts(fname='rumorfold_8-26.pickle')
 
-    test_data = unpickle_from_dicts(fname='sydneysiege_testdump_9-02.pickle')
+    test_data = unpickle_from_dicts(fname='sydneysiege_testdump_9-03.pickle')
 
     '''validate_cl(labled_data=documents,
                 train_and_test=train_and_test,
@@ -405,7 +406,7 @@ def main():
     find_uncertainty(labled_data=documents,
                      test_data=test_data,
                      cl_type='nb',
-                     fname='uncertainty_tweets_9-02.csv',
+                     fname='uncertainty_tweets_9-03.csv',
                      event='sydneysiege',
                      verbose=True)
 

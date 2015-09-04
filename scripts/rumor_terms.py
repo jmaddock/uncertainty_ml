@@ -353,7 +353,9 @@ event_terms = {
     'mh17':['sa11','sa-11','ukraine','malaysia','airlines','mh17','kiev','mh017','torez','donetsk','airline','plane','buk'],
     'WestJet_Hijacking':[],
     'baltimore':[],
-    'dc_power_outage':[]
+    'dc_power_outage':[],
+    'new_boston':['boston','bomb','explosion','marathon','blast'],
+    'boston':['boston','bomb','explosion','marathon','blast'],
 }
 
 uncertainty_words = ['may','unconfirmed','true','yet','related','possible','reports','statement','re','wait','unclear','claims','confirm','connection','know','rumours','hope','said','thinking','unknown','knowledge','believed','sure']

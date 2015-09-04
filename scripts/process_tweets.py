@@ -12,7 +12,7 @@ import json
 
 # db info
 client = MongoClient('z') #fix this
-insert_db = 'uncertainty_ml_no_meta'
+insert_db = 'uncertainty_ml_no_meta2'
 
 def remove_stopwords(words,event,rumor):
     stop_words = []
@@ -53,11 +53,15 @@ def process_tweet(tweet,event=None,rumor=None):
 
 def pickle_from_db(event_list,fname,verbose=False):
     for event in event_list:
-        result = DataFrame({'text':[],'event':[],'features':[],'unique_id':[]})
+        result = DataFrame({'text':[],
+                            'event':[],
+                            'features':[],
+                            'unique_id':[],
+                            'raw_text':[]})
         count = 0
         if verbose:
             print 'processing data from %s' % (event)
-        examples = client['uncertainty_ml'][event].find()
+        examples = client[insert_db][event].find()
         for tweet in examples:
             if verbose and count % 1000 == 0 and count != 0:
                 print 'processed %s tweets' % count
@@ -66,10 +70,11 @@ def pickle_from_db(event_list,fname,verbose=False):
                     'text':tweet['text'],
                     'event':event,
                     'features':json.dumps(tweet['features']),
-                    'unique_id':tweet['unique_id']
+                    'unique_id':tweet['unique_id'],
+                    'raw_text':tweet['raw_text']
                 },index=[count]))
                 count += 1
-                if count == 10000:
+                if count == 50:
                     break
         result = result.reindex(numpy.random.permutation(result.index))
 
@@ -79,6 +84,7 @@ def pickle_from_db(event_list,fname,verbose=False):
         f.close()
         if verbose:
             print result
+            print 'dumped %s tweets' % len(result)
 
 def process_and_insert_meta_data(event_list,verbose=False):
     for event in event_list:
@@ -154,7 +160,7 @@ def process_and_insert(event_list,verbose=False):
         count = 0
         if verbose:
             print 'processing data from %s' % (event)
-        examples = client[event]['tweets'].find({'lang':'en'})
+        examples = client[event]['tweets'].find()
         for tweet in examples:
             if unique_id == 1:
                 if verbose:
@@ -174,6 +180,7 @@ def process_and_insert(event_list,verbose=False):
                     'unique_id':unique_id,
                     'id':tweet['id'],
                     'text':text,
+                    'raw_text':tweet['text'],
                     'event':event,
                     'features':features
                 }
@@ -184,13 +191,27 @@ def process_and_insert(event_list,verbose=False):
                     pass
             count += 1
 
+def add_text(event,old_db,new_db):
+    tweet_list = client[old_db][event].find({'raw_text':{'$exists':False}})
+    insert_list = []
+    for i,tweet in enumerate(tweet_list):
+        raw_tweet = client[event]['tweets'].find_one({'id':tweet['id']})
+        tweet['raw_text'] = raw_tweet['text']
+        insert_list.append(tweet)
+        if len(insert_list) >= 10000:
+            client[new_db][event].insert(insert_list)
+            print 'processed %s tweets' % (i+1)
+            insert_list = []
+    client[new_db][event].insert(insert_list)
+
 def main():
-    process_and_insert(event_list=['sydneysiege','new_boston','mh17'],
+    process_and_insert(event_list=['new_boston','mh17'],
                        verbose=True
     )
-    '''pickle_from_db(event_list=['sydneysiege'],
-                   fname='testdump_9-02.pickle',
-                   verbose=True)'''
+    #pickle_from_db(event_list=['sydneysiege'],
+    #               fname='testdump_9-03.pickle',
+    #               verbose=True)
+    #add_text('sydneysiege','uncertainty_ml_no_meta','uncertainty_ml_no_meta2')
 
 if __name__ == "__main__":
     main()
